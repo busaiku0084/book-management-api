@@ -3,6 +3,8 @@ plugins {
 	id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
 	id 'org.springframework.boot' version '3.4.3'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.flywaydb.flyway' version '10.18.0'
+	id "org.jooq.jooq-codegen-gradle" version "3.19.21"
 }
 
 group = 'io.github.busaiku0084'
@@ -33,11 +35,45 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	jooqCodegen 'org.postgresql:postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+flyway {
+	url = 'jdbc:postgresql://localhost:5432/database'
+	user = 'user'
+	password = 'password'
+	locations = ['classpath:db/migration']
+}
+
+jooq {
+	configuration {
+		jdbc {
+			driver = 'org.postgresql.Driver'
+			url = 'jdbc:postgresql://localhost:5432/database'
+			user = 'user'
+			password = 'password'
+		}
+		generator {
+			database {
+				name = 'org.jooq.meta.postgres.PostgresDatabase'
+				inputSchema = "public"
+				includes = '.*'
+			}
+			target {
+				packageName = 'io.github.busaiku0084.bookmanagement.jooq'
+				directory = "${buildDir}/generated"
+			}
+		}
+	}
+}
+
+sourceSets {
+	main.java.srcDirs += "${buildDir}/generated"
 }
 
 kotlin {
