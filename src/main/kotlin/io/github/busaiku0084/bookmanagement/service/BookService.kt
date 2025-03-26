@@ -28,8 +28,10 @@ class BookService(private val bookRepository: BookRepository, private val author
 	 */
 	@Transactional
 	fun createBook(request: BookRequest): BookResponse {
+		val distinctAuthorIds = request.authorIds.distinct()
+
 		// 著者IDが存在しない場合はエラー（複数該当しても最初の1件のみが出力）
-		val authors = request.authorIds.map { id ->
+		val authors = distinctAuthorIds.map { id ->
 			authorRepository.findById(id) ?: throw IllegalArgumentException("ID=$id の著者が見つかりません")
 		}
 
@@ -40,7 +42,7 @@ class BookService(private val bookRepository: BookRepository, private val author
 		)
 		val created = bookRepository.create(book)
 
-		// 著者とのリレーションを登録
+		// 著者とのリレーションを登録（重複除去済み）
 		bookRepository.setAuthors(created.id!!, request.authorIds)
 
 		return BookResponse(
@@ -111,7 +113,8 @@ class BookService(private val bookRepository: BookRepository, private val author
 			throw IllegalArgumentException("出版済みの書籍を未出版に戻すことはできません")
 		}
 
-		val authors = request.authorIds.map { authorId ->
+		val distinctAuthorIds = request.authorIds.distinct()
+		val authors = distinctAuthorIds.map { authorId ->
 			authorRepository.findById(authorId)
 				?: throw IllegalArgumentException("ID=$authorId の著者が見つかりません")
 		}
