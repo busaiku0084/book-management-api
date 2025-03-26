@@ -1,0 +1,4 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432" # 開発中に外から接続可能にする

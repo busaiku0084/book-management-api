@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:55432/testdb
+    username: user
+    password: password
+  jooq:
+    sql-dialect: POSTGRES
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true

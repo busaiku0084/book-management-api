@@ -1,0 +1,14 @@
+services:
+  postgres:
+    container_name: book-management-db-test
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "55432:5432" # テストのみ別ポートでバインド
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_test_data:
