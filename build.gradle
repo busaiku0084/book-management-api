@@ -62,7 +62,7 @@ jooq {
     configuration {
         jdbc {
             driver = 'org.postgresql.Driver'
-            url = 'jdbc:postgresql://localhost:5432/database'
+            url = 'jdbc:postgresql://localhost:55432/testdb'
             user = 'user'
             password = 'password'
         }
@@ -99,6 +99,7 @@ ktlint {
     }
 }
 
+// Gradle から docker コマンドを実行するためのパスを取得
 def dockerPath = ['which', 'docker'].execute().text.trim()
 
 tasks.register('startDockerForTest', Exec) {
@@ -109,6 +110,52 @@ tasks.register('startDockerForTest', Exec) {
 tasks.register('stopDockerForTest', Exec) {
     description = 'Stop Docker Compose services'
     commandLine dockerPath, 'compose', '-f', 'compose.yaml', '-f', 'compose.override.test.yaml', 'down'
+}
+
+// PostgreSQL がクエリ受付可能になるまで最大30秒待機する
+def waitForPostgresContainer(String containerName, int timeoutSeconds = 30) {
+    def start = System.currentTimeMillis()
+    def end = start + (timeoutSeconds * 1000)
+
+    while (System.currentTimeMillis() < end) {
+        def result = ['docker', 'exec', containerName, 'pg_isready', '-U', 'user'].execute()
+        def output = result.text
+        if (output.contains("accepting connections")) {
+            println "PostgreSQL container is ready: $output"
+            return
+        } else {
+            println "Waiting for PostgreSQL container...: $output"
+            sleep(1000)
+        }
+    }
+
+    throw new GradleException("Timeout: PostgreSQL container '$containerName' not ready.")
+}
+
+tasks.named('compileKotlin') {
+    dependsOn tasks.named('jooqCodegen')
+}
+
+tasks.named('compileJava') {
+    dependsOn tasks.named('jooqCodegen')
+}
+
+tasks.matching { it.name.startsWith('runKtlintCheck') }.configureEach {
+    dependsOn tasks.named('jooqCodegen')
+}
+
+// jooq のコード生成前に DB を起動し、ready を確認してから実行
+tasks.named('jooqCodegen') {
+    dependsOn startDockerForTest
+    doFirst {
+        waitForPostgresContainer('book-management-db-test')
+    }
+    finalizedBy stopDockerForTest
+}
+
+// build 時に jooqCodegen を含める（clean build でコードが欠けるのを防ぐ）
+tasks.named('build') {
+    dependsOn jooqCodegen
 }
 
 tasks.named('test') {
