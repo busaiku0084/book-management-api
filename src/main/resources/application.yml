@@ -1,6 +1,10 @@
 spring:
   application:
     name: bookmanagement
+  docker:
+    compose:
+      file: compose.yaml,compose.override.yaml
+      lifecycle-management: start_and_stop
   datasource:
     url: jdbc:postgresql://localhost:5432/database
     username: user
